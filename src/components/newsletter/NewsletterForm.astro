@@ -218,22 +218,22 @@ interface BlockData {
           ? `
       <tr>
         <td style="padding-top: 20px;">
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family: ${template.font}; border-collapse: collapse;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family: Arial, Helvetica, sans-serif; border-collapse: collapse;">
             ${content.blocks
               .map(
                 (b: any) => `
               <tr>
-                <td style="padding: 15px 0; border-bottom: 1px solid #EEEEEE; font-family: ${template.font};">
+                <td style="padding: 15px 0; border-bottom: 1px solid #EEEEEE; font-family: Arial, Helvetica, sans-serif;">
                   ${b.area ? `<span style="display: inline-block; background-color: ${b.area.includes('SST') ? '#1B5E20' : '#2E7D32'}; color: #ffffff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; text-transform: uppercase; font-family: sans-serif;">${b.area}</span>` : ""}
-                  <strong style="color: #1a1a1a; font-family: ${template.font}; font-size: 16px; display: block; margin-bottom: 8px;">${b.subtitle || ""}</strong>
-                  ${b.description ? `<div style="color: ${template.textColor}; font-family: ${template.font}; line-height: 1.6; margin-bottom: 10px;">${b.description}</div>` : ""}
+                  <strong style="color: #1a1a1a; font-family: Arial, Helvetica, sans-serif; font-size: 16px; display: block; margin-bottom: 8px;">${b.subtitle || ""}</strong>
+                  ${b.description ? `<div style="color: ${template.textColor}; font-family: Arial, Helvetica, sans-serif; line-height: 1.6; margin-bottom: 10px;">${b.description}</div>` : ""}
                   ${
                     b.link
                       ? `
                     <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
                       <tr>
                         <td style="background-color: ${template.buttonBg}; border-radius: 4px; padding: 8px 16px;">
-                          <a href="${b.link}" target="_blank" rel="noopener noreferrer" style="color: #ffffff; font-family: ${template.font}; text-decoration: none; font-size: 14px; display: block; font-weight: bold;">
+                          <a href="${b.link}" target="_blank" rel="noopener noreferrer" style="color: #ffffff; font-family: Arial, Helvetica, sans-serif; text-decoration: none; font-size: 14px; display: block; font-weight: bold;">
                             Leer más →
                           </a>
                         </td>
@@ -260,9 +260,9 @@ interface BlockData {
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
         <title>${content.subject || "Boletín"}</title>
         <style type="text/css">
-          body { margin: 0; padding: 0; min-width: 100%; font-family: ${template.font}; }
+          body { margin: 0; padding: 0; min-width: 100%; font-family: Arial, Helvetica, sans-serif; }
           table { border-collapse: collapse; }
-          td { font-family: ${template.font}; }
+          td { font-family: Arial, Helvetica, sans-serif; }
         </style>
       </head>
       <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
@@ -279,12 +279,12 @@ interface BlockData {
                 
                 <!-- Main Content -->
                 <tr>
-                  <td style="padding: 30px; line-height: 1.6; color: ${template.textColor}; font-family: ${template.font};">
+                  <td style="padding: 30px; line-height: 1.6; color: ${template.textColor}; font-family: Arial, Helvetica, sans-serif;">
                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
                       <!-- Salutation -->
                       <tr>
                         <td style="padding-bottom: 20px;">
-                          <div style="font-size: 16px; font-family: ${template.font}; color: ${template.textColor}; font-weight: bold;">Estimados,</div>
+                          <div style="font-size: 16px; font-family: Arial, Helvetica, sans-serif; color: ${template.textColor}; font-weight: bold;">Estimados,</div>
                         </td>
                       </tr>
 
@@ -294,7 +294,7 @@ interface BlockData {
                           ? `
                       <tr>
                         <td style="padding-bottom: 20px;">
-                            <h2 style="margin: 0; color: #333333; font-family: ${template.font}; font-size: 22px;">${content.subject}</h2>
+                            <h2 style="margin: 0; color: #333333; font-family: Arial, Helvetica, sans-serif; font-size: 22px;">${content.subject}</h2>
                         </td>
                       </tr>`
                           : ""
@@ -325,12 +325,12 @@ interface BlockData {
                       <!-- Signature -->
                       <tr>
                         <td style="padding-bottom: 20px;">
-                           <div style="font-size: 16px; font-family: ${template.font}; color: ${template.textColor}; font-weight: bold;">Saludos Cordiales.</div>
+                           <div style="font-size: 16px; font-family: Arial, Helvetica, sans-serif; color: ${template.textColor}; font-weight: bold;">Saludos Cordiales.</div>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding-top: 40px; border-top: 1px solid #eee; margin-top: 20px;">
-                          <strong style="color: ${template.accentColor}; font-family: ${template.font}; display: block; margin-top: 5px;">Equipo Legal QWASI</strong>
+                          <strong style="color: #2E7D32; font-family: Arial, Helvetica, sans-serif; display: block; margin-top: 5px;">Equipo Legal QWASI</strong>
                         </td>
                       </tr>
                       
@@ -340,13 +340,13 @@ interface BlockData {
                 
                 <!-- Footer -->
                 <tr>
-                  <td style="background: #333333; padding: 30px; text-align: center; color: #bbbbbb; font-size: 13px; font-family: ${template.font};">
+                  <td style="background: #333333; padding: 30px; text-align: center; color: #bbbbbb; font-size: 13px; font-family: Arial, Helvetica, sans-serif;">
                     <p style="margin: 0 0 10px 0; color: #bbbbbb;">
-                        <span style="color: #ffffff;"><a href="mailto:legal@quwasi.com" style="color: #ffffff; text-decoration: none; margin: 0 10px;">legal@quwasi.com</a></span> | 
-                        <span style="color: #ffffff;"><a href="tel:+51943440165" style="color: #ffffff; text-decoration: none; margin: 0 10px;">+51 943 440 165</a></span>
+                        <span style="color: #FFF3EF;"><a href="mailto:legal@quwasi.com" style="color: #FFF3EF; text-decoration: none; margin: 0 10px;">legal@quwasi.com</a></span> | 
+                        <span style="color: #FFF3EF;"><a href="tel:+51943440165" style="color: #FFF3EF; text-decoration: none; margin: 0 10px;">+51 943 440 165</a></span>
                     </p>
                     <p style="margin: 0; color: #bbbbbb;">
-                        <span style="color: #ffffff;"><a href="https://www.quwasi.com" style="color: #ffffff; text-decoration: none;">www.quwasi.com</a></span>
+                        <span style="color: #FFF3EF;"><a href="https://www.quwasi.com" style="color: #FFF3EF; text-decoration: none;">www.quwasi.com</a></span>
                     </p>
                     <div style="opacity: 0.6; margin-top: 15px; color: #bbbbbb;">
                       © ${new Date().getFullYear()} QWASI. Todos los derechos reservados.
