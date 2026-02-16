@@ -1,0 +1,1022 @@
+---
+// src/components/newsletter/NewsletterForm.astro
+import EmailPreview from "./EmailPreview.astro";
+
+// Estado inicial
+const initialContent = {
+  subject: "",
+  salutation: "Estimados,",
+  closing: "Saludos cordiales,",
+};
+
+// Tipos para TypeScript
+interface BlockData {
+  subtitle: string;
+  description: string;
+  linkTitle: string;
+  link: string;
+}
+---
+
+<div class="newsletter-app">
+  <div class="editor-grid">
+    <!-- Panel de Edición -->
+    <div class="editor-panel">
+      <div class="editor-header">
+        <h2 class="editor-title">QWASI - Boletín Legal</h2>
+        <button type="button" class="btn btn-link" onclick="clearForm()" style="color: #ef4444; font-size: 0.8rem; text-decoration: none;">
+          Limpiar Todo el boletín
+        </button>
+      </div>
+
+      <form id="newsletter-form">
+
+        <div id="blocks-container"></div>
+        
+        <button
+          type="button"
+          class="btn btn-add-tema-wide"
+          onclick="addBlock()"
+        >
+          <span class="icon-plus">+</span> Agregar Nuevo Tema
+        </button>
+      </form>
+
+      <div class="tip-banner">
+        <span class="tip-icon">💡</span>
+        <p>Tip: Los cambios se guardan automáticamente. Puedes cerrar esta página y tus borradores se mantendrán guardados.</p>
+      </div>
+
+    </div>
+
+    <!-- Vista Previa -->
+    <div class="preview-panel">
+      <div class="preview-sticky">
+        <div class="email-client-simulator">
+          <div class="client-header">
+            <div class="window-controls">
+              <span class="control close"></span>
+              <span class="control minimize"></span>
+              <span class="control maximize"></span>
+            </div>
+            <div class="client-toolbar">
+              <div class="client-info">
+                <span class="label">De:</span>
+                <span class="value">legal@quwasi.com</span>
+              </div>
+              <div class="client-info">
+                <span class="label">Para:</span>
+                <span class="value">Lista de Suscriptores</span>
+              </div>
+            </div>
+            <div class="client-actions">
+              <button
+                type="button"
+                class="btn btn-primary btn-copy"
+                onclick="copyToClipboard()"
+              >
+                <span class="icon">📋</span> Copiar HTML
+              </button>
+            </div>
+          </div>
+          <div class="client-body">
+            <EmailPreview />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuración de la plantilla
+    const template = {
+      headerBg: "#1B5E20",
+      font: "Arial, Helvetica, sans-serif",
+      buttonBg: "#43A047",
+      textColor: "#333333",
+      accentColor: "#2E7D32",
+    };
+
+    // Función principal de actualización
+    function updatePreview() {
+      const form = document.getElementById(
+        "newsletter-form",
+      ) as HTMLFormElement;
+      if (!form) return;
+
+      const formData = new FormData(form);
+      const content: any = Object.fromEntries(formData);
+
+      // Recopilar bloques
+      const blockNodes = Array.from(
+        document.querySelectorAll(".block-item"),
+      ) as HTMLElement[];
+      const blocks = blockNodes
+        .map((node) => {
+          const titleInput = node.querySelector(
+            'input[name="blockTitle"]',
+          ) as HTMLInputElement;
+          const areaSelect = node.querySelector(
+            'select[name="blockArea"]',
+          ) as HTMLSelectElement;
+          const richEditor = node.querySelector(
+            '.rich-editor-content',
+          ) as HTMLElement;
+          const linkInput = node.querySelector(
+            'input[name="blockLink"]',
+          ) as HTMLInputElement;
+
+          const titleDisplay = node.querySelector(".tema-badge");
+          if (titleDisplay) {
+            const count = blockNodes.indexOf(node) + 1;
+            titleDisplay.textContent = `TEMA #${count}`;
+          }
+
+          return {
+            subtitle: titleInput?.value?.trim() || "",
+            area: areaSelect?.value || "",
+            description: richEditor?.innerHTML || "",
+            link: linkInput?.value?.trim() || "",
+          };
+        })
+        .filter((b) => b.subtitle || b.description || b.link); // Incluir si tiene algo de contenido
+
+      content.blocks = blocks;
+
+
+      // Generar HTML
+      const html = generateEmailHTML(content, template);
+
+      const previewElement = document.getElementById("email-preview");
+      if (previewElement) {
+        previewElement.innerHTML = html;
+      }
+
+      // Guardar en localStorage
+      saveToLocalStorage(content);
+
+      // Mostrar/ocultar mensaje de estado vacío
+      const emptyState = document.getElementById("empty-blocks-msg");
+      if (emptyState) {
+        emptyState.style.display = blocks.length === 0 ? "block" : "none";
+      }
+    }
+
+    // Persistencia
+    function saveToLocalStorage(content: any) {
+      localStorage.setItem("newsletter_data", JSON.stringify(content));
+    }
+
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem("newsletter_data");
+      if (!saved) return;
+
+      try {
+        const content = JSON.parse(saved);
+        
+        // Cargar campos básicos
+        const form = document.getElementById("newsletter-form") as HTMLFormElement;
+        if (form) {
+          const inputs = ["subject", "mainImageUrl"];
+          inputs.forEach(name => {
+            const input = form.querySelector(`[name="${name}"]`) as HTMLInputElement;
+            if (input && content[name]) input.value = content[name];
+          });
+        }
+
+        // Cargar bloques
+        const container = document.getElementById("blocks-container");
+        if (container && content.blocks) {
+          container.innerHTML = "";
+          content.blocks.forEach((block: any) => {
+            addBlock(block);
+          });
+        }
+        
+        updatePreview();
+      } catch (e) {
+        console.error("Error cargando desde localStorage", e);
+      }
+    }
+
+    // Generador de HTML para el Email
+    function generateEmailHTML(content: any, template: any) {
+      const blocksSection =
+        content.blocks && content.blocks.length > 0
+          ? `
+      <tr>
+        <td style="padding-top: 20px;">
+          <h3 style="margin: 0 0 15px 0; font-family: ${template.font}; font-size: 18px; color: #2E7D32; border-bottom: 2px solid #4CAF50; padding-bottom: 5px;">Temas Destacados</h3>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family: ${template.font}; border-collapse: collapse;">
+            ${content.blocks
+              .map(
+                (b: any) => `
+              <tr>
+                <td style="padding: 15px 0; border-bottom: 1px solid #EEEEEE; font-family: ${template.font};">
+                  ${b.area ? `<span style="display: inline-block; background-color: ${b.area.includes('SST') ? '#1B5E20' : '#2E7D32'}; color: white; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; text-transform: uppercase; font-family: sans-serif;">${b.area}</span>` : ""}
+                  <strong style="color: #1a1a1a; font-family: ${template.font}; font-size: 16px; display: block; margin-bottom: 8px;">${b.subtitle || ""}</strong>
+                  ${b.description ? `<div style="color: ${template.textColor}; font-family: ${template.font}; line-height: 1.6; margin-bottom: 10px;">${b.description}</div>` : ""}
+                  ${
+                    b.link
+                      ? `
+                    <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+                      <tr>
+                        <td style="background-color: ${template.buttonBg}; border-radius: 4px; padding: 8px 16px;">
+                          <a href="${b.link}" target="_blank" rel="noopener noreferrer" style="color: white; font-family: ${template.font}; text-decoration: none; font-size: 14px; display: block; font-weight: bold;">
+                            Leer más →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  `
+                      : ""
+                  }
+                </td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </table>
+        </td>
+      </tr>
+    `
+          : "";
+
+      return `
+      <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+      <html xmlns="http://www.w3.org/1999/xhtml">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>${content.subject || "Boletín"}</title>
+        <style type="text/css">
+          body { margin: 0; padding: 0; min-width: 100%; font-family: ${template.font}; }
+          table { border-collapse: collapse; }
+          td { font-family: ${template.font}; }
+        </style>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f4f4f4; border-collapse: collapse;">
+          <tr>
+            <td align="center" style="padding: 20px 0;">
+              <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.05); border-collapse: collapse;">
+                <!-- Header -->
+                <tr>
+                  <td style="background-color: #ffffff;">
+                    <img src="https://res.cloudinary.com/dmvms6dgn/image/upload/v1771214543/Bolet%C3%ADn_Header_unqxjv.png" alt="Boletín Informativo QWASI" style="width: 100%; max-width: 600px; height: auto; display: block;" />
+                  </td>
+                </tr>
+                
+                <!-- Main Content -->
+                <tr>
+                  <td style="padding: 30px; line-height: 1.6; color: ${template.textColor}; font-family: ${template.font};">
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
+                      <!-- Salutation -->
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                          <div style="font-size: 16px; font-family: ${template.font}; color: ${template.textColor}; font-weight: bold;">Estimado,</div>
+                        </td>
+                      </tr>
+
+                      <!-- Secondary Logo -->
+                      <tr>
+                        <td align="center" style="padding-bottom: 20px;">
+                          <img src="https://res.cloudinary.com/dmvms6dgn/image/upload/v1771214935/logo_diarioElPeruano_lsmduw.png" alt="Diario El Peruano" style="width: 90%; max-width: 540px; height: auto; display: block; margin: 0 auto;" />
+                        </td>
+                      </tr>
+
+                      <!-- Subject/Title -->
+                      ${
+                        content.subject
+                          ? `
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                            <h2 style="margin: 0; color: #333333; font-family: ${template.font}; font-size: 22px;">${content.subject}</h2>
+                        </td>
+                      </tr>`
+                          : ""
+                      }
+
+                      <!-- Main Image -->
+                      ${
+                        content.mainImageUrl
+                          ? `
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                          <img src="${content.mainImageUrl}" alt="Imagen Principal" style="width: 100%; max-width: 100%; height: auto; display: block; border-radius: 4px;" />
+                        </td>
+                      </tr>`
+                          : ""
+                      }
+                      
+                      <!-- Blocks -->
+                      ${blocksSection}
+                      
+                      <!-- Signature -->
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                           <div style="font-size: 16px; font-family: ${template.font}; color: ${template.textColor}; font-weight: bold;">Saludos Cordiales.</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-top: 40px; border-top: 1px solid #eee; margin-top: 20px;">
+                          <strong style="color: ${template.accentColor}; font-family: ${template.font}; display: block; margin-top: 5px;">Equipo Legal QWASI</strong>
+                        </td>
+                      </tr>
+                      
+                    </table>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="background: #333333; padding: 30px; text-align: center; color: #bbbbbb; font-size: 13px; font-family: ${template.font};">
+                    <p style="margin: 0 0 10px 0;">
+                        <a href="mailto:legal@quwasi.com" style="color: white; text-decoration: none; margin: 0 10px;">legal@quwasi.com</a> | 
+                        <a href="tel:+51943440165" style="color: white; text-decoration: none; margin: 0 10px;">+51 943 440 165</a>
+                    </p>
+                    <p style="margin: 0;">
+                        <a href="https://www.quwasi.com" style="color: white; text-decoration: none;">www.quwasi.com</a>
+                    </p>
+                    <div style="opacity: 0.6; margin-top: 15px;">
+                      © ${new Date().getFullYear()} QWASI. Todos los derechos reservados.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+    }
+
+
+    function sanitizeRichText(html: string): string {
+      if (!html) return "";
+      return html.replace(/<(?!\/?(b|strong|i|em|u|br)\b)[^>]*>/gi, "");
+    }
+
+    // Gestión de Bloques
+    function addBlock(savedData: any = null) {
+      const container = document.getElementById("blocks-container");
+      if (!container) return;
+
+      const id = Date.now();
+      const wrapper = document.createElement("div");
+      wrapper.className = "block-item new";
+      wrapper.id = `block-${id}`;
+      wrapper.setAttribute(
+        "style",
+        "background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: none; overflow: hidden; margin-bottom: var(--spacing-md); transition: border-color .2s, transform .2s, opacity .2s;",
+      );
+
+      const title = savedData?.subtitle || "Nuevo Bloque";
+      const area = savedData?.area || "";
+
+      wrapper.insertAdjacentHTML(
+        "afterbegin",
+        `
+      <div class="block-header">
+        <div class="header-left">
+          <span class="tema-badge">TEMA #${container.children.length + 1}</span>
+        </div>
+        <div class="block-controls">
+            <button type="button" class="btn-ghost" data-action="move-up" title="Subir">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
+            <button type="button" class="btn-ghost" data-action="move-down" title="Bajar">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <button type="button" class="btn-ghost delete" data-action="delete" title="Eliminar">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+        </div>
+      </div>
+      <div class="block-content">
+        <div class="form-group">
+            <label>Área</label>
+            <div class="area-select-wrapper">
+              <select name="blockArea">
+                <option value="Seguridad y Salud en el Trabajo - SST" ${area.includes('SST') ? 'selected' : ''}>Seguridad y Salud en el Trabajo - SST</option>
+                <option value="Medio Ambiente" ${area === 'Medio Ambiente' ? 'selected' : ''}>Medio Ambiente</option>
+              </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Título del Tema</label>
+            <input type="text" name="blockTitle" placeholder="Ej: Nueva normativa de seguridad..." value="${savedData?.subtitle || ''}" required maxlength="120" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+            <label>Descripción / Contenido</label>
+            <div class="rich-editor-toolbar">
+              <button type="button" class="tool-btn" data-command="bold" title="Negrita"><b>B</b></button>
+              <button type="button" class="tool-btn" data-command="italic" title="Cursiva"><i>I</i></button>
+              <button type="button" class="tool-btn" data-command="insertUnorderedList" title="Lista">• Lista</button>
+            </div>
+            <div class="rich-editor-content" contenteditable="true" data-placeholder="Escribe el contenido detallado aquí...">${savedData?.description || ''}</div>
+        </div>
+
+        <div class="form-group">
+            <label>Enlace "Leer más" (Opcional)</label>
+            <input type="url" name="blockLink" placeholder="https://ejemplo.com/noticia" value="${savedData?.link || ''}" inputmode="url" />
+        </div>
+      </div>
+    `,
+      );
+
+      container.appendChild(wrapper);
+
+      setTimeout(() => {
+        wrapper.classList.remove("new");
+      }, 150);
+
+      const headerEl = wrapper.querySelector(
+        ".block-header",
+      ) as HTMLElement | null;
+      if (headerEl) {
+        headerEl.addEventListener("click", (e) => {
+          const target = e.target as HTMLElement;
+          if (!target.closest(".block-controls")) {
+            toggleBlock(String(id));
+          }
+        });
+      }
+
+      const moveUpBtn = wrapper.querySelector(
+        '[data-action="move-up"]',
+      ) as HTMLElement | null;
+      const moveDownBtn = wrapper.querySelector(
+        '[data-action="move-down"]',
+      ) as HTMLElement | null;
+      const deleteBtn = wrapper.querySelector(
+        '[data-action="delete"]',
+      ) as HTMLElement | null;
+      moveUpBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        moveBlock(String(id), -1);
+      });
+      moveDownBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        moveBlock(String(id), 1);
+      });
+      deleteBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        removeBlock(String(id));
+      });
+
+       const toolBtns = wrapper.querySelectorAll(".tool-btn");
+      toolBtns.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const command = (btn as HTMLElement).dataset.command;
+          document.execCommand(command!, false);
+          (wrapper.querySelector(".rich-editor-content") as HTMLElement).focus();
+          updatePreview();
+        });
+      });
+
+      const uiElements = wrapper.querySelectorAll(
+        "input, select, .rich-editor-content",
+      );
+      uiElements.forEach((inp) => inp.addEventListener("input", updatePreview));
+      const urlInput = wrapper.querySelector(
+        'input[name="blockLink"]',
+      ) as HTMLInputElement | null;
+      if (urlInput) {
+        urlInput.addEventListener("input", () => {
+          if (urlInput.value && !/^https?:\/\/.+/.test(urlInput.value)) {
+            urlInput.setCustomValidity("URL inválida. Use https://");
+          } else {
+            urlInput.setCustomValidity("");
+          }
+        });
+      }
+
+      updatePreview();
+    }
+
+    function removeBlock(id: string) {
+      if (confirm("¿Estás seguro de eliminar este bloque?")) {
+        const block = document.getElementById(`block-${id}`);
+        block?.remove();
+        updatePreview();
+      }
+    }
+
+    function moveBlock(id: string, direction: number) {
+      const block = document.getElementById(`block-${id}`);
+      const container = document.getElementById("blocks-container");
+      if (!block || !container) return;
+
+      if (direction === -1 && block.previousElementSibling) {
+        container.insertBefore(block, block.previousElementSibling);
+      } else if (direction === 1 && block.nextElementSibling) {
+        container.insertBefore(block.nextElementSibling, block);
+      }
+      updatePreview();
+    }
+
+    function toggleBlock(id: string) {
+      const content = document.getElementById(`content-${id}`);
+      content?.classList.toggle("collapsed");
+    }
+
+    async function copyToClipboard() {
+      try {
+        const form = document.getElementById(
+          "newsletter-form",
+        ) as HTMLFormElement;
+        const formData = new FormData(form);
+        const content: any = Object.fromEntries(formData);
+
+        // Reconstruir bloques para el contenido
+        const blockNodes = Array.from(
+          document.querySelectorAll(".block-item"),
+        ) as HTMLElement[];
+        const blocks = blockNodes
+          .map((node) => {
+            const titleInput = node.querySelector(
+              'input[name="blockTitle"]',
+            ) as HTMLInputElement;
+            const areaSelect = node.querySelector(
+              'select[name="blockArea"]',
+            ) as HTMLSelectElement;
+            const richEditor = node.querySelector(
+              '.rich-editor-content',
+            ) as HTMLElement;
+            const linkInput = node.querySelector(
+              'input[name="blockLink"]',
+            ) as HTMLInputElement;
+            return {
+              subtitle: titleInput?.value?.trim() || "",
+              area: areaSelect?.value || "",
+              description: richEditor?.innerHTML || "",
+              link: linkInput?.value?.trim() || "",
+            };
+          })
+          .filter((b) => b.subtitle || b.description || b.link);
+
+        content.blocks = blocks;
+
+        // Generar el HTML exacto
+        const htmlContent = generateEmailHTML(content, template);
+
+        // Usar la API de Clipboard moderna
+        if (navigator.clipboard && navigator.clipboard.write) {
+          const type = "text/html";
+          const blob = new Blob([htmlContent], { type });
+          const data = [new ClipboardItem({ [type]: blob })];
+
+          await navigator.clipboard.write(data);
+          showNotification("✅ Email copiado con formato exacto");
+        } else {
+          // Fallback legacy
+          const textArea = document.createElement("textarea");
+          textArea.value = htmlContent;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textArea);
+          showNotification("⚠️ Copiado como código HTML (Navegador antiguo)");
+        }
+      } catch (err) {
+        console.error("Error al copiar:", err);
+        showNotification("❌ Error al copiar");
+      }
+    }
+
+    function showNotification(message: string) {
+      const notification = document.createElement("div");
+      notification.textContent = message;
+      notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      z-index: 10000;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease-out;
+    `;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    }
+
+    function clearForm() {
+      if (
+        confirm("¿Borrar todo el contenido? Esta acción no se puede deshacer.")
+      ) {
+        const form = document.getElementById(
+          "newsletter-form",
+        ) as HTMLFormElement;
+        form?.reset();
+        localStorage.removeItem("newsletter_data");
+        document.getElementById("blocks-container")!.innerHTML = "";
+        addBlock(); // Agregar uno vacío
+        updatePreview();
+      }
+    }
+
+    // Exponer funciones al window
+    (window as any).copyToClipboard = copyToClipboard;
+    (window as any).addBlock = addBlock;
+    (window as any).removeBlock = removeBlock;
+    (window as any).moveBlock = moveBlock;
+    (window as any).toggleBlock = toggleBlock;
+    (window as any).clearForm = clearForm;
+    (window as any).updatePreview = updatePreview;
+
+    // Inicialización
+    document.addEventListener("DOMContentLoaded", function () {
+      const form = document.getElementById("newsletter-form");
+      if (form) {
+        form.addEventListener("input", updatePreview);
+        form.addEventListener("change", updatePreview);
+      }
+
+      // Cargar desde localStorage
+      loadFromLocalStorage();
+
+      // Agregar bloque inicial si está vacío
+      if (document.getElementById("blocks-container")?.children.length === 0) {
+        addBlock();
+      }
+
+      updatePreview();
+    });
+  </script>
+</div>
+
+<style is:global>
+  .newsletter-app {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .editor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 1100px) {
+    .editor-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .editor-panel {
+    background: #ffffff;
+    border: 1px solid #eef2f6;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    padding: 32px;
+  }
+
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+
+  .editor-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .tema-counter {
+    font-size: 0.95rem;
+    color: #64748b;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: #64748b;
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    transition: all 0.2s;
+  }
+
+  .btn-ghost:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+
+  .btn-ghost:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost.delete:hover {
+    background: #fef2f2;
+    color: #ef4444;
+  }
+
+  .btn-add-tema-wide {
+    width: 100%;
+    padding: 16px 20px;
+    background: transparent;
+    border: 2px dashed #cbd5e1;
+    color: #475569;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 16px;
+  }
+
+  .btn-add-tema-wide:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #2563eb;
+  }
+
+  .form-section-hidden {
+    display: none;
+  }
+
+  .block-item {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .block-header {
+    background: #ffffff;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .tema-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+
+  .block-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .block-content {
+    padding: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 10px;
+    font-size: 0.875rem;
+  }
+
+  input,
+  select,
+  .rich-editor-content {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .rich-editor-content {
+    min-height: 150px;
+    overflow-y: auto;
+    line-height: 1.6;
+    outline: none;
+  }
+
+  .rich-editor-content:empty:before {
+    content: attr(data-placeholder);
+    color: #94a3b8;
+  }
+
+  input:focus,
+  select:focus,
+  .rich-editor-content:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  .rich-editor-toolbar {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+    padding: 8px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tool-btn {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #475569;
+    transition: all 0.2s;
+  }
+
+  .tool-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
+
+  .rich-editor-content {
+    border-radius: 0 0 8px 8px;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+
+  .area-select-wrapper {
+    position: relative;
+  }
+
+  .area-select-wrapper::after {
+    content: "▼";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: #94a3b8;
+    pointer-events: none;
+  }
+
+  select {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 32px;
+  }
+
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  /* Vista Previa */
+  .preview-panel {
+    top: 40px;
+  }
+
+  .email-client-simulator {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+
+  .client-header {
+    background: #1e293b;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .window-controls {
+    display: flex;
+    gap: 6px;
+  }
+
+  .control {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .control.close { background: #f87171; }
+  .control.minimize { background: #fbbf24; }
+  .control.maximize { background: #34d399; }
+
+  .client-preview-label {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .client-body {
+    padding: 40px;
+    background: #f8fafc;
+    min-height: 800px;
+  }
+
+  #email-preview {
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+  }
+
+  .btn-link {
+    background: transparent;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 0.85rem;
+    text-decoration: underline;
+  }
+
+  .btn-link:hover {
+    color: #ef4444;
+  }
+
+  .tip-banner {
+    background: #f0f9ff;
+    border: 1px solid #e0f2fe;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 32px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .tip-banner p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #0369a1;
+  }
+</style>

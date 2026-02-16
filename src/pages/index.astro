@@ -1,0 +1,73 @@
+---
+import Layout from "../layouts/Layout.astro";
+import NewsletterForm from "../components/newsletter/NewsletterForm.astro";
+---
+
+<Layout>
+
+	<main class="container">
+		<NewsletterForm />
+	</main>
+</Layout>
+
+<style>
+	.main-header {
+		background-color: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
+		padding: var(--spacing-lg) 0;
+		margin-bottom: var(--spacing-xl);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.header-content {
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 0 var(--spacing-lg);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+	}
+
+	.brand-icon {
+		font-size: 1.5rem;
+		color: var(--color-primary);
+	}
+
+	h1 {
+		font-size: 1.5rem;
+		font-weight: 700;
+		color: var(--color-text-main);
+		margin: 0;
+	}
+
+	.subtitle {
+		color: var(--color-text-muted);
+		margin: 0;
+		font-size: 0.95rem;
+	}
+
+	.container {
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 0 var(--spacing-lg) var(--spacing-xl);
+		min-height: calc(100vh - 200px);
+	}
+
+	@media (max-width: 768px) {
+		.header-content {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--spacing-sm);
+		}
+
+		.container {
+			padding: 0 var(--spacing-md) var(--spacing-lg);
+		}
+	}
+</style>
